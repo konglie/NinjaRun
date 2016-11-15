@@ -9,7 +9,8 @@ import java.awt.*;
 public class TheApp extends JFrame {
 	public TheApp(){
 		super("[kurungkurawal.com] Ninja Run");
-		setMinimumSize(new Dimension(800, 600));
+		setResizable(false);
+		setMinimumSize(new Dimension(800, 400));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		NinjaPanel ninjaPanel = new NinjaPanel();
@@ -19,6 +20,11 @@ public class TheApp extends JFrame {
 	}
 
 	public static void main(String[] args){
+		try {
+			UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+		} catch (Exception e){
+			e.printStackTrace();
+		}
 		new TheApp()
 				.setVisible(true);
 	}

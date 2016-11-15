@@ -10,25 +10,27 @@ import java.net.URL;
  * Created by Konglie on 11/15/2016.
  *
  * images are downloaded from
- * http://opengameart.org/content/ninja-run-free-sprites
+ * http://opengameart.org/
  *
- * images may be copyrighted,
- * let's go!
+ * Images may be copyrighted.
+ * Anyway, here it is...
  *
  */
 public class NinjaPanel extends JPanel {
 	private final int SpriteSize = 10;
 	private final String SpriteBaseResourceFolder = "/com/kurungkurawal/sprites";
 	private BufferedImage[] runningSprites, idleSprites;
+	private BufferedImage background, road;
 
 	private int currentFrame = 0;
 	private boolean assetsReady = false;
 	private JRadioButton radioRun;
 	private JRadioButton radioIdle;
+	private int backgroundPos = 0, roadPos = 0;
 
 	public NinjaPanel(){
 		super();
-		setBackground(Color.BLACK);
+		setOpaque(false);
 		buildGUI();
 
 		new Thread(new Runnable() {
@@ -55,7 +57,6 @@ public class NinjaPanel extends JPanel {
 
 	@Override
 	public void paint(Graphics g){
-		super.paint(g);
 
 		int w = getWidth(), h = getHeight();
 		if(!assetsReady){
@@ -65,27 +66,61 @@ public class NinjaPanel extends JPanel {
 			String loading = "Loading...";
 			g.drawString(loading, (w - metrics.stringWidth(loading)) / 2, (h - metrics.getHeight()) / 2);
 			return;
-		}
-		BufferedImage[] frames = runningSprites;
-		if(radioIdle.isSelected()){
-			frames = idleSprites;
-		}
-		BufferedImage frame = frames[currentFrame++];
-		int iw = frame.getWidth(), ih = frame.getHeight();
-		int centerx = (w-iw)/2, centery = (h-ih)/2;
+		} else {
 
-		g.drawImage(frame, centerx, centery, null);
+			drawBackground((Graphics2D) g);
 
-		if(currentFrame >= SpriteSize){
-			currentFrame = 0;
+			BufferedImage[] frames = runningSprites;
+			if (radioIdle.isSelected()) {
+				frames = idleSprites;
+			}
+			BufferedImage ninja = frames[currentFrame++];
+			int iw = ninja.getWidth(), ih = ninja.getHeight();
+			int xpos = (w / 4) - iw, ypos = (h - ih - road.getHeight());
+
+			g.drawImage(ninja, xpos, ypos, null);
+
+			if (currentFrame >= SpriteSize) {
+				currentFrame = 0;
+			}
+		}
+
+		super.paint(g);
+	}
+
+	private void drawBackground(Graphics2D g){
+		g.drawImage(background, -backgroundPos, 0, null);
+		int onScreen = background.getWidth() - backgroundPos;
+
+		if(onScreen <= getWidth()){
+			g.drawImage(background, onScreen, 0, null);
+			if(backgroundPos >= getWidth()){
+				backgroundPos = 0;
+			}
+		}
+
+		// the road
+		int ntile = (int)Math.ceil(((double)getWidth() + roadPos) / road.getWidth());
+		int ypos = getHeight() - road.getHeight();
+		for(int i = 0; i < ntile; i++){
+			g.drawImage(road, i * road.getWidth() - roadPos, ypos, null);
+		}
+
+		if(roadPos == road.getWidth()){
+			roadPos = 0;
+		}
+
+		if(!radioIdle.isSelected()) {
+			backgroundPos += 2;
+			roadPos += 5;
 		}
 	}
 
 	private void buildGUI(){
-		radioRun = new JRadioButton("Running");
+		radioRun = radio("Running");
 		radioRun.setSelected(true);
 
-		radioIdle = new JRadioButton("Idle");
+		radioIdle = radio("Idle");
 
 		ButtonGroup opt = new ButtonGroup();
 		opt.add(radioRun);
@@ -95,24 +130,29 @@ public class NinjaPanel extends JPanel {
 		add(radioIdle);
 	}
 
+	private JRadioButton radio(String text){
+		JRadioButton r = new JRadioButton(text);
+		r.setOpaque(true);
+		return r;
+	}
+
 	private void cacheAssets(){
 		runningSprites = new BufferedImage[SpriteSize];
 		idleSprites = new BufferedImage[SpriteSize];
 		String spriteFile;
+		int spriteHeight = 200;
 		for(int i = 0; i < SpriteSize; i++){
 			spriteFile = String.format("%s/Run__00%s.png", SpriteBaseResourceFolder, i);
-			runningSprites[i] = fetchImage(spriteFile);
+			runningSprites[i] = scale(fetchImage(spriteFile), 0, spriteHeight);
+
 			spriteFile = String.format("%s/Idle__00%s.png", SpriteBaseResourceFolder, i);
-			idleSprites[i] = fetchImage(spriteFile);
+			idleSprites[i] = scale(fetchImage(spriteFile), 0, spriteHeight);
 		}
+		background = scale(fetchImage(String.format("%s/background.png", SpriteBaseResourceFolder)), 800, 0);
+		road = scale(fetchImage(String.format("%s/road.png", SpriteBaseResourceFolder)), 0, 90);
 		assetsReady = true;
 	}
-	/**
-	 * Read image file from project/application images resource
-	 *
-	 * @param path the file path INSIDE /images folder
-	 * @return
-	 */
+
 	public BufferedImage fetchImage(String path){
 		URL url = getClass().getResource(path);
 		try {
@@ -123,5 +163,53 @@ public class NinjaPanel extends JPanel {
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	public BufferedImage scale(BufferedImage image, int width, int height){
+		if(width <= 0){
+			width = Integer.MAX_VALUE;
+		}
+
+		if(height <= 0){
+			height = Integer.MAX_VALUE;
+		}
+
+		Dimension imgSize = new Dimension(image.getWidth(), image.getHeight());
+		Dimension resize = calcResize(
+			imgSize,
+				new Dimension(width, height)
+		);
+
+		Image img = image.getScaledInstance(
+				(int)resize.getWidth(),
+				(int)resize.getHeight(),
+				Image.SCALE_SMOOTH
+		);
+		BufferedImage result = new BufferedImage(
+				(int)resize.getWidth(), (int) resize.getHeight(), BufferedImage.TYPE_4BYTE_ABGR
+		);
+		Graphics g = result.createGraphics();
+		g.drawImage(img, 0, 0, null);
+		g.dispose();
+
+		return result;
+	}
+
+	public static Dimension calcResize(Dimension original, Dimension target) {
+		int ow = original.width,  oh = original.height;
+		int tw = target.width, th = target.height;
+		int newWidth = ow, newHeight = oh;
+
+		if (ow > tw) {
+			newWidth = tw;
+			newHeight = (newWidth * oh) / ow;
+		}
+
+		if (newHeight > th) {
+			newHeight = th;
+			newWidth = (newHeight * ow) / oh;
+		}
+
+		return new Dimension(newWidth, newHeight);
 	}
 }
