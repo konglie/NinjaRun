@@ -17,6 +17,9 @@ import java.net.URL;
  *
  */
 public class NinjaPanel extends JPanel {
+	private final int FrameWidth = 784;
+	private final int FrameHeight = 361;
+
 	private final int SpriteSize = 10;
 	private final String SpriteBaseResourceFolder = "/com/kurungkurawal/sprites";
 	private BufferedImage[] runningSprites, idleSprites;
@@ -45,7 +48,7 @@ public class NinjaPanel extends JPanel {
 								NinjaPanel.this.repaint();
 							}
 						});
-						Thread.sleep(1000 / 25);
+						Thread.sleep(1000 / 30);
 					} catch (Exception e){
 
 					}
@@ -58,17 +61,30 @@ public class NinjaPanel extends JPanel {
 	@Override
 	public void paint(Graphics g){
 
+		Graphics2D g2 = (Graphics2D)g;
 		int w = getWidth(), h = getHeight();
+		Double scaleW, scaleH;
+		if(w != FrameWidth || h != FrameHeight) {
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+//			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			scaleW = (double) w / FrameWidth;
+			scaleH = (double) h / FrameHeight;
+			g2.scale(scaleW, scaleH);
+		}
+
 		if(!assetsReady){
+			g2.fillRect(0, 0, w, h);
 			Font font = new Font("Arial", Font.BOLD, 29);
 			FontMetrics metrics = getFontMetrics(font);
+			g.setColor(Color.GRAY);
 			g.setFont(font);
 			String loading = "Loading...";
 			g.drawString(loading, (w - metrics.stringWidth(loading)) / 2, (h - metrics.getHeight()) / 2);
 			return;
 		} else {
 
-			drawBackground((Graphics2D) g);
+			drawBackground(g2);
 
 			BufferedImage[] frames = runningSprites;
 			if (radioIdle.isSelected()) {
@@ -76,15 +92,20 @@ public class NinjaPanel extends JPanel {
 			}
 			BufferedImage ninja = frames[currentFrame++];
 			int iw = ninja.getWidth(), ih = ninja.getHeight();
-			int xpos = (w / 4) - iw, ypos = (h - ih - road.getHeight());
+			int xpos = (FrameWidth / 4) - iw, ypos = (FrameHeight - ih - road.getHeight());
 
 			g.drawImage(ninja, xpos, ypos, null);
 
-			if (currentFrame >= SpriteSize) {
+			if (currentFrame >= frames.length) {
 				currentFrame = 0;
 			}
 		}
 
+		if(w != FrameWidth || h != FrameHeight) {
+			scaleW = (double) FrameWidth / w;
+			scaleH = (double) FrameHeight / h;
+			g2.scale(scaleW, scaleH);
+		}
 		super.paint(g);
 	}
 
@@ -92,16 +113,16 @@ public class NinjaPanel extends JPanel {
 		g.drawImage(background, -backgroundPos, 0, null);
 		int onScreen = background.getWidth() - backgroundPos;
 
-		if(onScreen <= getWidth()){
+		if(onScreen <= FrameWidth){
 			g.drawImage(background, onScreen, 0, null);
-			if(backgroundPos >= getWidth()){
+			if(backgroundPos >= FrameWidth){
 				backgroundPos = 0;
 			}
 		}
 
 		// the road
-		int ntile = (int)Math.ceil(((double)getWidth() + roadPos) / road.getWidth());
-		int ypos = getHeight() - road.getHeight();
+		int ntile = (int)Math.ceil(((double)FrameWidth + roadPos) / road.getWidth());
+		int ypos = FrameHeight - road.getHeight();
 		for(int i = 0; i < ntile; i++){
 			g.drawImage(road, i * road.getWidth() - roadPos, ypos, null);
 		}
@@ -140,15 +161,15 @@ public class NinjaPanel extends JPanel {
 		runningSprites = new BufferedImage[SpriteSize];
 		idleSprites = new BufferedImage[SpriteSize];
 		String spriteFile;
-		int spriteHeight = 200;
+		int ninjaHeight = 120;
 		for(int i = 0; i < SpriteSize; i++){
 			spriteFile = String.format("%s/Run__00%s.png", SpriteBaseResourceFolder, i);
-			runningSprites[i] = scale(fetchImage(spriteFile), 0, spriteHeight);
+			runningSprites[i] = scale(fetchImage(spriteFile), 0, ninjaHeight);
 
 			spriteFile = String.format("%s/Idle__00%s.png", SpriteBaseResourceFolder, i);
-			idleSprites[i] = scale(fetchImage(spriteFile), 0, spriteHeight);
+			idleSprites[i] = scale(fetchImage(spriteFile), 0, ninjaHeight);
 		}
-		background = scale(fetchImage(String.format("%s/background.png", SpriteBaseResourceFolder)), 800, 0);
+		background = scale(fetchImage(String.format("%s/background.png", SpriteBaseResourceFolder)), FrameWidth, 0);
 		road = scale(fetchImage(String.format("%s/road.png", SpriteBaseResourceFolder)), 0, 90);
 		assetsReady = true;
 	}

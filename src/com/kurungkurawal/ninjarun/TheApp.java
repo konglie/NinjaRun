@@ -9,7 +9,7 @@ import java.awt.*;
 public class TheApp extends JFrame {
 	public TheApp(){
 		super("[kurungkurawal.com] Ninja Run");
-		setResizable(false);
+//		setResizable(false);
 		setMinimumSize(new Dimension(800, 400));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
