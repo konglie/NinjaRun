@@ -133,7 +133,7 @@ public class NinjaPanel extends JPanel {
 
 		if(!radioIdle.isSelected()) {
 			backgroundPos += 2;
-			roadPos += 5;
+			roadPos += road.getWidth() / 20;
 		}
 	}
 
